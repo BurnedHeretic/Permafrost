@@ -1,0 +1,197 @@
+<Window x:Class="Permafrost.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Permafrost — v0.02.10" Width="1580" Height="940" MinWidth="1120" MinHeight="700"
+        WindowStartupLocation="CenterScreen">
+    <Window.CommandBindings>
+        <CommandBinding Command="ApplicationCommands.Undo" Executed="UndoCommand_Executed" CanExecute="UndoCommand_CanExecute"/>
+        <CommandBinding Command="ApplicationCommands.Redo" Executed="RedoCommand_Executed" CanExecute="RedoCommand_CanExecute"/>
+    </Window.CommandBindings>
+
+    <DockPanel>
+        <Menu DockPanel.Dock="Top">
+            <MenuItem Header="_File">
+                <MenuItem Header="_Scan Battlefront II Install..." Click="ScanGame_Click"/>
+                <MenuItem Header="Open _Exported EBX..." Click="OpenEbx_Click"/>
+                <Separator/>
+                <MenuItem Header="_Save Workspace Changes" Click="SaveWorkspace_Click"/>
+                <MenuItem Header="Save Exported EBX _As..." Click="SaveAs_Click"/>
+                <Separator/>
+                <MenuItem Header="Export Scan _Diagnostics..." Click="ExportDiagnostics_Click"/>
+                <Separator/>
+                <MenuItem Header="E_xit" Click="Exit_Click"/>
+            </MenuItem>
+            <MenuItem Header="_Edit">
+                <MenuItem x:Name="UndoMenuItem" Header="Undo" Click="Undo_Click" IsEnabled="False" InputGestureText="Ctrl+Z"/>
+                <MenuItem x:Name="RedoMenuItem" Header="Redo" Click="Redo_Click" IsEnabled="False" InputGestureText="Ctrl+Y"/>
+            </MenuItem>
+            <MenuItem Header="_View">
+                <MenuItem Header="Frame All" Click="FrameAll_Click"/>
+                <MenuItem Header="Focus Selected" Click="FocusSelected_Click"/>
+            </MenuItem>
+            <MenuItem Header="_Build" IsEnabled="False" ToolTip="Mod bundle output begins in v0.03"/>
+            <MenuItem Header="_KYBER" IsEnabled="False" ToolTip="KYBER level declaration/launch integration begins after the native output pipeline"/>
+        </Menu>
+
+        <Border DockPanel.Dock="Top" Background="#26292E" BorderBrush="#41464F" BorderThickness="0,0,0,1" Padding="7">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/><ColumnDefinition Width="260"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="Game install" VerticalAlignment="Center" Margin="2,0,8,0"/>
+                <TextBox Grid.Column="1" x:Name="InstallPathBox" Height="27" VerticalContentAlignment="Center" Margin="0,0,5,0"/>
+                <Button Grid.Column="2" Content="Browse..." Click="BrowseInstall_Click" Margin="0,0,5,0"/>
+                <Button Grid.Column="3" Content="Scan Install" Click="ScanGame_Click" Margin="0,0,12,0"/>
+                <TextBlock Grid.Column="4" x:Name="WorkspaceText" Text="Workspace: not configured" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Foreground="#AEB5BF"/>
+            </Grid>
+        </Border>
+
+        <ToolBarTray DockPanel.Dock="Top">
+            <ToolBar>
+                <Button Content="Scan Game" Click="ScanGame_Click"/>
+                <Button Content="Save Workspace" Click="SaveWorkspace_Click"/>
+                <Separator/>
+                <Button Content="Select" IsEnabled="False" ToolTip="Viewport selection is active by default"/>
+                <Button Content="Move" IsEnabled="False" ToolTip="Direct transform editing is available in Properties; gizmo arrives after native mesh rendering"/>
+                <Button Content="Rotate" IsEnabled="False"/>
+                <Button Content="Scale" IsEnabled="False"/>
+                <Separator/>
+                <Button Content="Focus" Click="FocusSelected_Click"/>
+                <Button Content="Frame All" Click="FrameAll_Click"/>
+            </ToolBar>
+        </ToolBarTray>
+
+        <StatusBar DockPanel.Dock="Bottom">
+            <StatusBarItem><TextBlock x:Name="StatusText" Text="Ready. Scan your STAR WARS Battlefront II install or open an exported EBX."/></StatusBarItem>
+            <Separator/>
+            <StatusBarItem HorizontalAlignment="Right"><TextBlock x:Name="IndexStatsText" Text="No game index" Foreground="#AEB5BF"/></StatusBarItem>
+        </StatusBar>
+
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="330" MinWidth="240"/>
+                <ColumnDefinition Width="5"/>
+                <ColumnDefinition Width="*" MinWidth="440"/>
+                <ColumnDefinition Width="5"/>
+                <ColumnDefinition Width="370" MinWidth="290"/>
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,1,0">
+                <TabControl x:Name="LeftTabs" Background="{StaticResource PanelBrush}">
+                    <TabItem Header="Levels">
+                        <DockPanel Margin="5">
+                            <StackPanel DockPanel.Dock="Top">
+                                <TextBlock Text="GAME LEVEL ASSETS" FontWeight="SemiBold" Margin="6,5"/>
+                                <TextBox x:Name="LevelSearchBox" Margin="5,0,5,5" Height="27" TextChanged="LevelSearchBox_TextChanged" ToolTip="Filter indexed level EBX paths"/>
+                                <Button Content="Open Selected Level Asset" Click="OpenSelectedLevel_Click" Margin="5,0,5,5"/>
+                                <Button Content="Deep Index All EBX GUIDs" Click="DeepIndex_Click" Margin="5,0,5,5" ToolTip="Optional: resolves non-level blueprint GUIDs. This can take longer on a full install."/>
+                            </StackPanel>
+                            <ListBox x:Name="LevelList" Margin="3" MouseDoubleClick="LevelList_MouseDoubleClick" ScrollViewer.HorizontalScrollBarVisibility="Auto">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Margin="2">
+                                            <TextBlock Text="{Binding ShortName}" FontWeight="SemiBold"/>
+                                            <TextBlock Text="{Binding Name}" FontSize="11" Foreground="#9FA6B2" TextTrimming="CharacterEllipsis" ToolTip="{Binding Name}"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </DockPanel>
+                    </TabItem>
+                    <TabItem Header="Outliner">
+                        <DockPanel Margin="4">
+                            <StackPanel DockPanel.Dock="Top">
+                                <TextBlock Text="SCENE OUTLINER" FontWeight="SemiBold" Margin="6,5"/>
+                                <TextBlock x:Name="OutlinerSummary" Text="No level loaded" Foreground="#9FA6B2" Margin="6,0,6,5"/>
+                            </StackPanel>
+                            <TreeView x:Name="Outliner" Margin="2" SelectedItemChanged="Outliner_SelectedItemChanged">
+                                <TreeView.ItemTemplate>
+                                    <HierarchicalDataTemplate ItemsSource="{Binding Children}">
+                                        <TextBlock Text="{Binding DisplayText}" ToolTip="{Binding TypeName}"/>
+                                    </HierarchicalDataTemplate>
+                                </TreeView.ItemTemplate>
+                            </TreeView>
+                        </DockPanel>
+                    </TabItem>
+                    <TabItem Header="Diagnostics">
+                        <Grid Margin="6">
+                            <TextBox x:Name="DiagnosticsBox" IsReadOnly="True" TextWrapping="NoWrap"
+                                     FontFamily="Consolas" FontSize="11" AcceptsReturn="True"
+                                     VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"/>
+                        </Grid>
+                    </TabItem>
+                </TabControl>
+            </Border>
+
+            <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch" Background="#15171A"/>
+
+            <Grid Grid.Column="2" Background="#17191D">
+                <Viewport3D x:Name="Viewport" ClipToBounds="True" Focusable="True"/>
+                <Border VerticalAlignment="Top" HorizontalAlignment="Left" Margin="10" Background="#CC1B1D21" Padding="9,6" CornerRadius="3">
+                    <StackPanel>
+                        <TextBlock x:Name="ViewportOverlay" Text="No level loaded" FontWeight="SemiBold"/>
+                        <TextBlock Text="LMB select • RMB orbit • MMB pan • Wheel zoom" FontSize="11" Foreground="#AEB5BF"/>
+                    </StackPanel>
+                </Border>
+                <Border VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,12" Background="#AA1B1D21" Padding="8,4" CornerRadius="3">
+                    <TextBlock Foreground="#9FA6B2" Text="v0.02 integration viewport — editable Frostbite placement proxies; native MeshSet rendering is the next renderer milestone"/>
+                </Border>
+            </Grid>
+
+            <GridSplitter Grid.Column="3" Width="5" HorizontalAlignment="Stretch" Background="#15171A"/>
+
+            <Border Grid.Column="4" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1,0,0,0">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="PROPERTIES" FontWeight="SemiBold" Margin="10,8"/>
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel Margin="10">
+                            <TextBlock x:Name="SelectedName" FontSize="15" FontWeight="SemiBold" Text="Nothing selected" TextWrapping="Wrap"/>
+                            <TextBlock x:Name="SelectedType" Foreground="#AEB5BF" Margin="0,2,0,2" TextWrapping="Wrap"/>
+                            <TextBlock x:Name="SelectedAsset" Foreground="#7F8792" FontSize="11" Margin="0,0,0,12" TextWrapping="Wrap"/>
+
+                            <GroupBox Header="Transform" Margin="0,0,0,10">
+                                <Grid Margin="8">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="82"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Grid.Row="0" Text="X" VerticalAlignment="Center"/><TextBox Grid.Row="0" Grid.Column="1" x:Name="XBox" Margin="2"/>
+                                    <TextBlock Grid.Row="1" Text="Y" VerticalAlignment="Center"/><TextBox Grid.Row="1" Grid.Column="1" x:Name="YBox" Margin="2"/>
+                                    <TextBlock Grid.Row="2" Text="Z" VerticalAlignment="Center"/><TextBox Grid.Row="2" Grid.Column="1" x:Name="ZBox" Margin="2"/>
+                                    <TextBlock Grid.Row="3" Text="Rotation" VerticalAlignment="Center"/><TextBlock Grid.Row="3" Grid.Column="1" x:Name="RotationText" Margin="2"/>
+                                    <TextBlock Grid.Row="4" Text="Scale" VerticalAlignment="Center"/><TextBlock Grid.Row="4" Grid.Column="1" x:Name="ScaleText" Margin="2"/>
+                                    <Button Grid.Row="5" Grid.ColumnSpan="2" x:Name="ApplyTranslationButton" Content="Apply Translation" Click="ApplyTranslation_Click" Margin="0,8,0,0"/>
+                                    <UniformGrid Grid.Row="6" Grid.ColumnSpan="2" Columns="6" Margin="0,5,0,0">
+                                        <Button Content="−X" Tag="-1,0,0" Click="Nudge_Click" ToolTip="Nudge -1 X"/>
+                                        <Button Content="+X" Tag="1,0,0" Click="Nudge_Click" ToolTip="Nudge +1 X"/>
+                                        <Button Content="−Y" Tag="0,-1,0" Click="Nudge_Click" ToolTip="Nudge -1 Y"/>
+                                        <Button Content="+Y" Tag="0,1,0" Click="Nudge_Click" ToolTip="Nudge +1 Y"/>
+                                        <Button Content="−Z" Tag="0,0,-1" Click="Nudge_Click" ToolTip="Nudge -1 Z"/>
+                                        <Button Content="+Z" Tag="0,0,1" Click="Nudge_Click" ToolTip="Nudge +1 Z"/>
+                                    </UniformGrid>
+                                </Grid>
+                            </GroupBox>
+
+                            <GroupBox Header="Raw EBX Fields">
+                                <DataGrid x:Name="PropertyGrid" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column" MaxHeight="520">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Field" Binding="{Binding Name}" Width="135"/>
+                                        <DataGridTextColumn Header="Value" Binding="{Binding Value}" Width="*"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </GroupBox>
+                        </StackPanel>
+                    </ScrollViewer>
+                </DockPanel>
+            </Border>
+        </Grid>
+    </DockPanel>
+
+    <Window.InputBindings>
+        <KeyBinding Key="Z" Modifiers="Control" Command="ApplicationCommands.Undo"/>
+        <KeyBinding Key="Y" Modifiers="Control" Command="ApplicationCommands.Redo"/>
+    </Window.InputBindings>
+</Window>

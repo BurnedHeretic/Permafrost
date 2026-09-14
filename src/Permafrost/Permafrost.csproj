@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>Permafrost</AssemblyName>
+    <RootNamespace>Permafrost</RootNamespace>
+    <Platforms>AnyCPU;x64</Platforms>
+    <Product>Permafrost</Product>
+    <Title>Permafrost</Title>
+    <LangVersion>latest</LangVersion>
+    <Version>0.2.10</Version>
+    <AssemblyVersion>0.2.10.0</AssemblyVersion>
+    <FileVersion>0.2.10.0</FileVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Remove="Fonts\EngliBesh.ttf" />
+    <None Remove="Fonts\jupiter.ttf" />
+    <None Remove="Fonts\trajan-bold.ttf" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ZstdSharp.Port" Version="0.8.8" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Fonts\EngliBesh.ttf">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Fonts\jupiter.ttf">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Fonts\trajan-bold.ttf">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+  </ItemGroup>
+</Project>

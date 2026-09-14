@@ -1,0 +1,39 @@
+Permafrost v0.02.10 — scan diagnostics
+Install: C:\Program Files (x86)\Steam\steamapps\common\STAR WARS Battlefront II
+Catalogs: 23
+  win32/installation/initialexperience
+  win32/installation/frontend
+  win32/installation/sp
+  win32/installation/sp_a1
+  win32/installation/sp_a2
+  win32/installation/sp_a3
+  win32/installation/mp
+  win32/installation/space
+  win32/installation/sp_a3_p2
+  win32/installation/s1
+  win32/installation/s2
+  win32/installation/s2_1
+  win32/installation/s2_2
+  win32/installation/s3
+  win32/installation/s5_1
+  win32/installation/s6_2
+  win32/installation/s7
+  win32/installation/s7_1
+  win32/installation/s7_2
+  win32/installation/s8
+  win32/installation/s8_1
+  win32/installation/s9
+  win32/installation/s9_3
+Manifest bundles: 4,777
+Bundle aggregation: Validated BF2 bundle aggregation map
+Bundle aggregation cache: C:\Users\Home\AppData\Local\Permafrost\Cache\VanillaBundleAggregation.kb
+Bundle headers attempted: 4,777
+Bundle headers indexed: 4,777
+Bundle headers failed: 0
+Indexed EBX: 2,194,623
+Indexed RES: 458,642
+Level-path EBX: 9,733
+Resolved level GUIDs: 9,733
+
+Warnings:
+  (none)
