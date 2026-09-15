@@ -1,6 +1,6 @@
-# Format research references
+# Research references
 
-The v0.02 backend is an independent implementation based on the Battlefront II samples supplied for this project plus publicly visible Frostbite format implementations used for cross-checking.
+The backend is an independent implementation based on Battlefront II samples supplied for this project plus publicly visible Frostbite format implementations used for cross-checking.
 
 Key cross-checks used while implementing the direct-install reader:
 
