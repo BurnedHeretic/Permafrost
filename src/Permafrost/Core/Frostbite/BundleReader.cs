@@ -104,7 +104,7 @@ public static class BundleReader
                 return false;
             }
 
-            var result = new List<GameAssetEntry>(checked((int)(ebxCount + resCount)));
+            var result = new List<GameAssetEntry>(checked((int)(ebxCount + resCount + chunkCount)));
             var resEntries = new List<GameAssetEntry>(checked((int)resCount));
             var fileIndex = 1;
 
@@ -204,6 +204,41 @@ public static class BundleReader
                 result[index] = enriched;
             }
 
+            // SWBF2 bundle manifests carry many render chunks that are not repeated in the
+            // top-level manifest chunk table. MeshSet LODs routinely point at these bundle-local
+            // chunks, so indexing only the global table leaves valid meshes stuck at bounds fallback.
+            // Frosty's BaseBinarySbReader layout is: Guid (BE), logicalOffset (BE), logicalSize (BE).
+            for (var i = 0U; i < chunkCount; i++)
+            {
+                if (reader.BaseStream.Position + 24 > reader.BaseStream.Length)
+                {
+                    error = $"chunk record {i} extends beyond the decompressed bundle header";
+                    return false;
+                }
+                if (fileIndex >= bundle.Files.Count)
+                {
+                    error = $"chunk record {i} has no matching aggregation file mapping";
+                    return false;
+                }
+
+                var chunkId = ReadGuidBE(reader);
+                var logicalOffset = reader.ReadUInt32BE();
+                var logicalSize = reader.ReadUInt32BE();
+                var originalSize = logicalSize;
+
+                result.Add(new GameAssetEntry
+                {
+                    Name = $"chunks/{chunkId:D}",
+                    Kind = GameAssetKind.Chunk,
+                    OriginalSize = originalSize,
+                    Storage = bundle.Files[fileIndex++],
+                    BundleHash = bundle.Hash,
+                    ChunkId = chunkId,
+                    ChunkLogicalOffset = logicalOffset,
+                    ChunkLogicalSize = logicalSize
+                });
+            }
+
             entries = result;
             return true;
         }
@@ -213,6 +248,18 @@ public static class BundleReader
             entries = Array.Empty<GameAssetEntry>();
             return false;
         }
+    }
+
+    private static Guid ReadGuidBE(BinaryReader reader)
+    {
+        var bytes = reader.ReadBytes(16);
+        if (bytes.Length != 16) throw new EndOfStreamException();
+        // NativeReader.ReadGuid(Endian.Big) reverses the first GUID fields so .NET's mixed-endian
+        // Guid byte representation yields the canonical Frostbite chunk identifier.
+        Array.Reverse(bytes, 0, 4);
+        Array.Reverse(bytes, 4, 2);
+        Array.Reverse(bytes, 6, 2);
+        return new Guid(bytes);
     }
 
     private static string ReadBundleString(BinaryReader reader, uint stringsOffset, uint nameOffset)

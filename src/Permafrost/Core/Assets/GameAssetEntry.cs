@@ -21,6 +21,12 @@ public sealed class GameAssetEntry
     public byte[]? ResMeta { get; init; }
     public Guid? FileGuid { get; set; }
 
+    // Bundle-local chunk metadata. A large number of SWBF2 MeshSet LOD chunks are present
+    // in bundle manifests but are not duplicated in the top-level manifest chunk table.
+    public Guid? ChunkId { get; init; }
+    public uint ChunkLogicalOffset { get; init; }
+    public uint ChunkLogicalSize { get; init; }
+
     public string NormalizedName => Name.Replace('\\', '/').TrimStart('/');
     public string ShortName
     {

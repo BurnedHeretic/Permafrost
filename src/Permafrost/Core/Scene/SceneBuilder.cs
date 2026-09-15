@@ -125,6 +125,10 @@ public static class SceneBuilder
             ScaleX = sx,
             ScaleY = sy,
             ScaleZ = sz,
+            LinearTransformStruct = transform,
+            RightStruct = transform.Get<EbxObject>("right"),
+            UpStruct = transform.Get<EbxObject>("up"),
+            ForwardStruct = transform.Get<EbxObject>("forward"),
             TranslationStruct = transStruct
         };
     }

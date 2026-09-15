@@ -80,6 +80,7 @@ public sealed class EbxV4Reader
         if (magic == Version4)
         {
             _boxedValuesCount = _reader.ReadUInt32();
+            _document.BoxedValueCount = checked((int)_boxedValuesCount);
             _boxedValuesOffset = _reader.ReadUInt32() + stringsOffset + stringsLength;
         }
         else
@@ -107,6 +108,7 @@ public sealed class EbxV4Reader
             _document.Fields.Add(new EbxFieldDescriptor
             {
                 Name = typeNames.TryGetValue(nameHash, out var name) ? name : $"0x{unchecked((uint)nameHash):X8}",
+                NameHash = nameHash,
                 Type = type,
                 ClassRef = _reader.ReadUInt16(),
                 DataOffset = _reader.ReadUInt32(),
@@ -126,6 +128,7 @@ public sealed class EbxV4Reader
             _document.Classes.Add(new EbxClassDescriptor
             {
                 Name = typeNames.TryGetValue(nameHash, out var name) ? name : $"0x{unchecked((uint)nameHash):X8}",
+                NameHash = nameHash,
                 FieldIndex = fieldIndex,
                 FieldCount = fieldCount,
                 Alignment = alignment,

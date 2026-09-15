@@ -39,6 +39,7 @@ public sealed record EbxInstanceDescriptor(ushort ClassRef, ushort Count, bool I
 public sealed class EbxFieldDescriptor
 {
     public required string Name { get; init; }
+    public int NameHash { get; init; }
     public ushort Type { get; init; }
     public ushort ClassRef { get; init; }
     public uint DataOffset { get; init; }
@@ -49,6 +50,7 @@ public sealed class EbxFieldDescriptor
 public sealed class EbxClassDescriptor
 {
     public required string Name { get; init; }
+    public int NameHash { get; init; }
     public int FieldIndex { get; init; }
     public byte FieldCount { get; init; }
     public byte Alignment { get; init; }
@@ -106,9 +108,16 @@ public sealed class EbxObject
 
 public sealed class EbxDocument
 {
-    internal EbxDocument(byte[] data) => Data = data;
+    private readonly byte[] _originalData;
+    private bool _requiresSerialization;
 
-    internal byte[] Data { get; }
+    internal EbxDocument(byte[] data)
+    {
+        _originalData = data;
+    }
+
+    internal byte[] Data => _originalData;
+    public bool RequiresSerialization => _requiresSerialization;
     public string? SourcePath { get; internal set; }
     public string? AssetName { get; internal set; }
     public bool IsDirty { get; set; }
@@ -117,6 +126,7 @@ public sealed class EbxDocument
     public long StringsOffset { get; internal set; }
     public uint StringsLength { get; internal set; }
     public long ArraysOffset { get; internal set; }
+    public int BoxedValueCount { get; internal set; }
     public List<EbxImportReference> Imports { get; } = new();
     public List<EbxFieldDescriptor> Fields { get; } = new();
     public List<EbxClassDescriptor> Classes { get; } = new();
@@ -126,22 +136,67 @@ public sealed class EbxDocument
 
     public EbxObject RootObject => Objects[0];
 
-    public void PatchFloat(EbxObject owner, string fieldName, float value)
-    {
-        if (!owner.FieldLocations.TryGetValue(fieldName, out var location) || location.Type != EbxFieldType.Float32)
-            throw new InvalidOperationException($"Field '{fieldName}' is not a patchable Float32 field.");
+    public void PatchFloat(EbxObject owner, string fieldName, float value) => SetFloat(owner, fieldName, value);
 
-        var bytes = BitConverter.GetBytes(value);
-        Buffer.BlockCopy(bytes, 0, Data, checked((int)location.Offset), 4);
+    /// <summary>
+    /// Updates a Float32 in the in-memory object model. For untouched retail objects Permafrost can
+    /// still patch the original byte offset directly; once a document has structural edits, offsets
+    /// are intentionally ignored and the complete EBX is rebuilt from the model on save.
+    /// </summary>
+    public void SetFloat(EbxObject owner, string fieldName, float value)
+    {
+        if (!owner.Fields.ContainsKey(fieldName))
+            throw new InvalidOperationException($"Field '{fieldName}' does not exist on {owner.ClassName}.");
+
         owner.Fields[fieldName] = value;
+        if (!_requiresSerialization && owner.FieldLocations.TryGetValue(fieldName, out var location) && location.Type == EbxFieldType.Float32)
+        {
+            var bytes = BitConverter.GetBytes(value);
+            Buffer.BlockCopy(bytes, 0, _originalData, checked((int)location.Offset), 4);
+        }
+        else
+        {
+            _requiresSerialization = true;
+        }
         IsDirty = true;
     }
 
-    public byte[] GetBytesCopy() => (byte[])Data.Clone();
+    public void MarkStructureDirty()
+    {
+        _requiresSerialization = true;
+        IsDirty = true;
+    }
+
+    public byte[] GetBytesCopy()
+    {
+        if (!_requiresSerialization)
+            return (byte[])_originalData.Clone();
+
+        var bytes = EbxV4Writer.Write(this);
+
+        // Structural edits are higher risk than fixed-offset transform patches. Refuse to emit an
+        // overlay unless Permafrost can immediately parse its own output back into the same basic
+        // object graph. This catches descriptor/array/pointer layout mistakes before they reach a
+        // workspace or, later, a KYBER mod package.
+        var verify = EbxV4Reader.Read(bytes, AssetName);
+        if (verify.FileGuid != FileGuid)
+            throw new InvalidDataException($"Structural EBX verification changed FileGuid {FileGuid} -> {verify.FileGuid}.");
+        if (verify.Objects.Count != Objects.Count)
+            throw new InvalidDataException($"Structural EBX verification changed object count {Objects.Count} -> {verify.Objects.Count}.");
+
+        if (RootObject.Fields.TryGetValue("Objects", out var originalObjects) && originalObjects is List<object?> originalList &&
+            verify.RootObject.Fields.TryGetValue("Objects", out var verifiedObjects) && verifiedObjects is List<object?> verifiedList &&
+            originalList.Count != verifiedList.Count)
+        {
+            throw new InvalidDataException($"Structural EBX verification changed the root Objects array count {originalList.Count} -> {verifiedList.Count}.");
+        }
+
+        return bytes;
+    }
 
     public void SaveAs(string path)
     {
-        File.WriteAllBytes(path, Data);
+        File.WriteAllBytes(path, GetBytesCopy());
         IsDirty = false;
     }
 }

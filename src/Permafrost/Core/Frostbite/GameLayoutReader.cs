@@ -274,12 +274,19 @@ public static class GameLayoutReader
             progress?.Report($"Bundle aggregation compatibility warning: {ex.Message}");
         }
 
-        // Chunk records are useful later for RES/chunk editing. Keep the stream position validation here
-        // but do not index them as level assets in v0.02.
+        // BF2 manifest chunk records are GUID + int32 file index (little-endian).
+        // Glacier confirms that fileIndex points back into the raw manifest file table.
+        // v0.03 indexes these so MeshSet LODs can resolve their vertex/index chunks directly.
         for (var i = 0; i < chunkCount && reader.BaseStream.Position + 20 <= reader.BaseStream.Length; i++)
         {
-            _ = new Guid(reader.ReadBytes(16));
-            _ = reader.ReadInt32();
+            var id = new Guid(reader.ReadBytes(16));
+            var fileIndex = reader.ReadInt32();
+            if (fileIndex < 0 || fileIndex >= result.Files.Count)
+                continue;
+
+            var baseStorage = result.Files[fileIndex];
+            var chunkStorage = baseStorage with { IsChunk = true };
+            result.Chunks[id] = new ManifestChunkDescriptor(id, fileIndex, chunkStorage);
         }
 
         return result;

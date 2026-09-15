@@ -15,10 +15,13 @@ public sealed class ManifestBundleDescriptor
     public List<ManifestFileRef> Files { get; } = new();
 }
 
+public sealed record ManifestChunkDescriptor(Guid Id, int FileIndex, ManifestFileRef Storage);
+
 public sealed class FrostbiteManifest
 {
     public List<ManifestFileRef> Files { get; } = new();
     public List<ManifestBundleDescriptor> Bundles { get; } = new();
+    public Dictionary<Guid, ManifestChunkDescriptor> Chunks { get; } = new();
     public int ChunkCount { get; internal set; }
     public bool UsesBundleAggregationMap { get; internal set; }
     public string BundleAggregationSource { get; internal set; } = "Manifest StartIndex/Count";

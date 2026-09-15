@@ -53,39 +53,96 @@ public sealed class UndoStack
     }
 }
 
-public sealed class TranslateNodeCommand : IEditorCommand
+public readonly record struct TransformSnapshot(
+    double X, double Y, double Z,
+    double RotationX, double RotationY, double RotationZ,
+    double ScaleX, double ScaleY, double ScaleZ)
+{
+    public static TransformSnapshot From(SceneTransform transform) => new(
+        transform.X, transform.Y, transform.Z,
+        transform.RotationX, transform.RotationY, transform.RotationZ,
+        transform.ScaleX, transform.ScaleY, transform.ScaleZ);
+}
+
+/// <summary>
+/// Patches a Frostbite LinearTransform in-place. BF2 stores the orientation/scale as the
+/// right/up/forward basis vectors and translation separately, so rotation/scale editing must
+/// rewrite the three basis vectors rather than patching an Euler-angle field that does not exist.
+/// </summary>
+public sealed class TransformNodeCommand : IEditorCommand
 {
     private readonly SceneNode _node;
     private readonly Action<SceneNode>? _onChanged;
-    private readonly (double X, double Y, double Z) _before;
-    private readonly (double X, double Y, double Z) _after;
+    private readonly TransformSnapshot _before;
+    private readonly TransformSnapshot _after;
+    private readonly string _name;
 
-    public TranslateNodeCommand(SceneNode node, double x, double y, double z, Action<SceneNode>? onChanged = null)
+    public TransformNodeCommand(
+        SceneNode node,
+        TransformSnapshot after,
+        string name = "Transform",
+        Action<SceneNode>? onChanged = null)
     {
-        if (node.Transform?.TranslationStruct == null || node.Document == null)
-            throw new InvalidOperationException("The selected node does not have an editable Frostbite translation.");
+        if (node.Transform is not { IsFullyEditable: true } || (!node.IsEditorOnly && node.Document == null))
+            throw new InvalidOperationException("The selected node does not have an editable transform.");
+
         _node = node;
         _onChanged = onChanged;
-        _before = (node.Transform.X, node.Transform.Y, node.Transform.Z);
-        _after = (x, y, z);
+        _before = TransformSnapshot.From(node.Transform);
+        _after = after;
+        _name = name;
     }
 
-    public string Name => $"Move {_node.Name}";
+    public string Name => $"{_name} {_node.Name}";
 
     public void Execute() => Apply(_after);
     public void Undo() => Apply(_before);
 
-    private void Apply((double X, double Y, double Z) value)
+    private void Apply(TransformSnapshot value)
     {
-        var transform = _node.Transform!;
-        var trans = transform.TranslationStruct!;
-        var document = _node.Document!;
-        document.PatchFloat(trans, "x", (float)value.X);
-        document.PatchFloat(trans, "y", (float)value.Y);
-        document.PatchFloat(trans, "z", (float)value.Z);
-        transform.X = value.X;
-        transform.Y = value.Y;
-        transform.Z = value.Z;
+        SceneTransformEditor.Apply(_node, value);
         _onChanged?.Invoke(_node);
     }
+
+}
+
+public sealed class TranslateNodeCommand : IEditorCommand
+{
+    private readonly TransformNodeCommand _inner;
+
+    public TranslateNodeCommand(SceneNode node, double x, double y, double z, Action<SceneNode>? onChanged = null)
+    {
+        if (node.Transform == null)
+            throw new InvalidOperationException("The selected node does not have an editable Frostbite translation.");
+        var t = node.Transform;
+        _inner = new TransformNodeCommand(node,
+            new TransformSnapshot(x, y, z, t.RotationX, t.RotationY, t.RotationZ, t.ScaleX, t.ScaleY, t.ScaleZ),
+            "Move", onChanged);
+    }
+
+    public string Name => _inner.Name;
+    public void Execute() => _inner.Execute();
+    public void Undo() => _inner.Undo();
+}
+
+/// <summary>
+/// Lightweight command wrapper used for editor-only scene operations such as staging,
+/// duplicating and deleting preview placements. This keeps those actions in the same
+/// undo/redo stack as Frostbite transform edits without pretending they are serialized EBX edits.
+/// </summary>
+public sealed class DelegateEditorCommand : IEditorCommand
+{
+    private readonly Action _execute;
+    private readonly Action _undo;
+
+    public DelegateEditorCommand(string name, Action execute, Action undo)
+    {
+        Name = name;
+        _execute = execute;
+        _undo = undo;
+    }
+
+    public string Name { get; }
+    public void Execute() => _execute();
+    public void Undo() => _undo();
 }
