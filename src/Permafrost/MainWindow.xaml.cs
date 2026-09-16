@@ -262,8 +262,8 @@ public partial class MainWindow : Window
             OutlinerSearchBox.Text = string.Empty;
             ViewportOverlay.Text = $"{entry.Name}  •  {_session.Documents.Count:N0} linked EBXs  •  {placements:N0} transforms";
             RendererStatusText.Text = _nativeMeshSummary == null
-                ? "v0.04.1 native geometry pipeline — asset browser/preview + snapping + map shortcuts"
-                : $"v0.04.1 native renderer • {_nativeMeshSummary}";
+                ? "v0.04.3 native geometry pipeline — asset browser/preview + snapping + map shortcuts"
+                : $"v0.04.3 native renderer • {_nativeMeshSummary}";
             LeftTabs.SelectedIndex = 1;
             UpdateInspector();
             StatusText.Text = $"Opened {entry.Name}. Native renderer: {_nativeMeshSummary}. Native triangle meshes use blue-grey; cyan boxes are MeshSet-bounds fallbacks; grey/blue proxies are non-renderable helpers.";
@@ -739,8 +739,8 @@ public partial class MainWindow : Window
             ReturnToLevelButton.IsEnabled = _sceneRoot != null;
             ViewportOverlay.Text = $"ASSET PREVIEW • {entry.Name}";
             RendererStatusText.Text = info.Geometry is { } geometry
-                ? $"v0.04.1 asset preview • LOD {geometry.LodIndex} • {geometry.VertexCount:N0} verts • {geometry.TriangleCount:N0} tris"
-                : "v0.04.1 asset preview • MeshSet bounds fallback";
+                ? $"v0.04.3 asset preview • LOD {geometry.LodIndex} • {geometry.VertexCount:N0} verts • {geometry.TriangleCount:N0} tris"
+                : "v0.04.3 asset preview • MeshSet bounds fallback";
             UpdateAssetSelectionUi($"Root: {document.RootObject.ClassName} • MeshSet: {info.MeshSetResource?.Name ?? "—"} • {info.Status}");
             StatusText.Text = $"Previewing {entry.Name}. This is read-only; the open level has not been modified.";
         }
@@ -1053,8 +1053,8 @@ public partial class MainWindow : Window
         var name = _session?.RootAsset.Name ?? _document?.AssetName ?? "Loaded level";
         ViewportOverlay.Text = name;
         RendererStatusText.Text = _nativeMeshSummary == null
-            ? "v0.04.1 native geometry pipeline"
-            : $"v0.04.1 native renderer • {_nativeMeshSummary}";
+            ? "v0.04.3 native geometry pipeline"
+            : $"v0.04.3 native renderer • {_nativeMeshSummary}";
         StatusText.Text = "Returned to the loaded level.";
     }
 
@@ -1420,7 +1420,7 @@ public partial class MainWindow : Window
     {
         if (_dataSource == null) return;
         var sb = new StringBuilder();
-        sb.AppendLine("Permafrost v0.04.1 — scan diagnostics");
+        sb.AppendLine("Permafrost v0.04.3 — scan diagnostics");
         sb.AppendLine($"Install: {_dataSource.Layout.InstallRoot}");
         sb.AppendLine($"Catalogs: {_dataSource.Layout.Catalogs.Count:N0}");
         foreach (var catalog in _dataSource.Layout.Catalogs) sb.AppendLine($"  {catalog}");
@@ -1455,6 +1455,7 @@ public partial class MainWindow : Window
         {
             sb.AppendLine($"Native render resolution: {_nativeMeshSummary}");
             sb.AppendLine($"Native render chain: {_nativeMeshSummary.ChainDetails}");
+            sb.AppendLine($"Native render ClassGuid: {_nativeMeshSummary.GuidDetails}");
         }
         sb.AppendLine();
         sb.AppendLine("Warnings:");
@@ -1544,7 +1545,7 @@ public partial class MainWindow : Window
         if (_dataSource == null || _sceneRoot == null) return;
         var resolver = new NativeMeshResolver(_dataSource);
         _nativeMeshSummary = await resolver.ResolveSceneAsync(_sceneRoot, progress);
-        RendererStatusText.Text = $"v0.04.1 native renderer • {_nativeMeshSummary}";
+        RendererStatusText.Text = $"v0.04.3 native renderer • {_nativeMeshSummary}";
         if (render)
             _sceneViewport.Render(_sceneRoot);
     }
