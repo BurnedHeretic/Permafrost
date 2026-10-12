@@ -395,20 +395,6 @@ Special acknowledgement goes to the developers and contributors behind **Frosty 
 
 ---
 
-## License
-
-Choose a license appropriate for the project before public release.
-
-Common options include:
-
-- MIT
-- GPL-3.0
-- LGPL-3.0
-
-If the repository does not yet contain a license, the source code should be treated as **all rights reserved** until one is added.
-
----
-
 <p align="center">
   <b>PERMAFROST</b><br>
   Battlefront II Level Editor
